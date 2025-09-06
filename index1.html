@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroAI - Smart Crop Advisory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Arial Black', 'Arial', 'monospace', sans-serif;
+            background: #fff;
+            color: #000;
+            touch-action: manipulation;
+        }
+        .page {
+            background: #fff;
+        }
+        /* Neobrutalism Styles */
+        .neobrutal {
+            border: 3px solid #000 !important;
+            border-radius: 0 !important;
+            box-shadow: 4px 4px 0 #000, 8px 8px 0 #00000010 !important;
+            background: #fff !important;
+            color: #000 !important;
+        }
+        .neobrutal-btn {
+            background: #fff;
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 0;
+            font-weight: bold;
+            padding: 12px 0;
+            box-shadow: 2px 2px 0 #000;
+            transition: background 0.2s, color 0.2s;
+            outline: none;
+            width: 100%;
+            margin-top: 12px;
+        }
+        .neobrutal-btn:active,
+        .neobrutal-btn:hover {
+            background: #000;
+            color: #fff;
+        }
+        .neobrutal-input,
+        .neobrutal-select {
+            background: #fff;
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 0;
+            font-size: 1rem;
+            padding: 10px;
+            box-shadow: 2px 2px 0 #000;
+            outline: none;
+            margin-top: 6px;
+            width: 100%;
+        }
+        .neobrutal-input:focus,
+        .neobrutal-select:focus {
+            border-color: #000;
+            background: #f5f5f5;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 0;
+            border: 3px solid #000;
+            background: #fff;
+            color: #000;
+            font-size: 1rem;
+            box-shadow: 2px 2px 0 #000;
+            margin-bottom: 8px;
+        }
+        .chat-bubble.user {
+            align-self: flex-end;
+            background: #fff;
+            border-color: #000;
+        }
+        .chat-bubble.bot {
+            align-self: flex-start;
+            background: #f5f5f5;
+            border-color: #000;
+        }
+        nav {
+            border-top: 3px solid #000 !important;
+            background: #fff !important;
+            box-shadow: none !important;
+        }
+        .nav-btn {
+            border: none !important;
+            background: transparent !important;
+            color: #000 !important;
+            box-shadow: none !important;
+            font-weight: bold;
+            border-right: 3px solid #000;
+            border-radius: 0 !important;
+        }
+        .nav-btn:last-child {
+            border-right: none;
+        }
+        .nav-btn.text-green-600 {
+            background: #000 !important;
+            color: #fff !important;
+        }
+        /* Remove rounded corners everywhere */
+        * {
+            border-radius: 0 !important;
+        }
+        /* Remove Tailwind's default shadows */
+        .shadow-lg, .shadow-md, .shadow-inner, .shadow-sm {
+            box-shadow: none !important;
+        }
+        .hidden { display: none; }
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .page.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .mic-button.recording {
+            animation: pulse 1.5s infinite;
+            border: 3px solid #000;
+            background: #fff !important;
+            color: #000 !important;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(0,0,0,0); }
+            100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+        }
+        /* Utility for centering */
+        .flex-center-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Scrollbar for chat */
+        #chat-window {
+            scrollbar-width: thin;
+            scrollbar-color: #000 #fff;
+        }
+        #chat-window::-webkit-scrollbar {
+            width: 8px;
+            background: #fff;
+        }
+        #chat-window::-webkit-scrollbar-thumb {
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- App Container -->
+    <div id="app" class="neobrutal h-full w-full max-w-lg mx-auto relative overflow-hidden">
+
+        <!-- ======================= Onboarding Page ======================= -->
+        <div id="onboarding-page" class="page active flex-center-col p-8" style="background:#fff;">
+            <div class="text-center">
+                <h1 class="mt-4 text-3xl font-bold" data-translate="welcome_title">Welcome to AgroAI</h1>
+                <p class="mt-2" data-translate="welcome_subtitle">Your smart farming assistant.</p>
+            </div>
+            <div class="mt-12 w-full">
+                <label for="language-select" class="block text-sm font-bold" data-translate="select_language">Select Language</label>
+                <select id="language-select" class="neobrutal-select">
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+                </select>
+            </div>
+            <div class="mt-6 w-full">
+                <label for="mobile-number" class="block text-sm font-bold" data-translate="enter_mobile">Enter Mobile Number</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 border border-r-0 neobrutal-input" style="width:auto;">+91</span>
+                    <input type="tel" id="mobile-number" class="neobrutal-input" placeholder="00000-00000" maxlength="10" style="border-left:0;">
+                </div>
+            </div>
+            <button id="send-otp-btn" class="neobrutal-btn" data-translate="send_otp">Send OTP</button>
+
+            <!-- OTP Section (hidden by default) -->
+            <div id="otp-section" class="hidden mt-6 w-full">
+                <label for="otp-input" class="block text-sm font-bold" data-translate="enter_otp">Enter OTP</label>
+                <input type="text" id="otp-input" class="neobrutal-input" placeholder="123456" maxlength="6">
+                <button id="verify-otp-btn" class="neobrutal-btn" data-translate="verify_otp">Verify OTP</button>
+            </div>
+            <p id="onboarding-error" class="text-red-500 text-sm mt-2"></p>
+        </div>
+        
+        <!-- ======================= Profile Page ======================= -->
+        <div id="profile-page" class="page flex-center-col p-8" style="background:#fff;">
+            <h2 class="text-2xl font-bold text-center" data-translate="setup_profile">Setup Your Profile</h2>
+            <p class="text-center mt-1 mb-8" data-translate="profile_subtitle">This helps us personalize your experience.</p>
+            <div class="space-y-6 w-full">
+                <div>
+                    <label for="state-select" class="block text-sm font-bold" data-translate="state">State</label>
+                    <select id="state-select" class="neobrutal-select">
+                        <option value="">Select State</option>
+                        <option value="Punjab">Punjab</option>
+                        <option value="Uttar Pradesh">Uttar Pradesh</option>
+                        <option value="Haryana">Haryana</option>
+                        <option value="Rajasthan">Rajasthan</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="district-input" class="block text-sm font-bold" data-translate="district">District</label>
+                    <input type="text" id="district-input" class="neobrutal-input" placeholder="e.g., Ludhiana">
+                </div>
+                <div>
+                    <label for="crops-input" class="block text-sm font-bold" data-translate="primary_crops">Primary Crops</label>
+                    <input type="text" id="crops-input" class="neobrutal-input" placeholder="e.g., Wheat, Rice">
+                </div>
+            </div>
+            <p id="profile-error" class="text-red-500 text-sm mt-4 text-center"></p>
+            <button id="save-profile-btn" class="neobrutal-btn" data-translate="save_and_continue">Save & Continue</button>
+        </div>
+
+        <!-- ======================= Main App Area ======================= -->
+        <div id="main-app" class="page flex flex-col h-full neobrutal">
+            <main id="app-content" class="flex-1 overflow-y-auto pb-20"></main>
+            <!-- Bottom Navigation -->
+            <nav class="absolute bottom-0 left-0 right-0 flex justify-around">
+                <button data-target="dashboard-content" class="nav-btn flex-1 flex flex-col items-center py-2 text-green-600 border-t-2 border-green-600">
+                    <span class="text-xs font-bold" data-translate="nav_dashboard">Dashboard</span>
+                </button>
+                <button data-target="chat-content" class="nav-btn flex-1 flex flex-col items-center py-2">
+                    <span class="text-xs font-bold" data-translate="nav_chat">Chat</span>
+                </button>
+                <button data-target="diagnose-content" class="nav-btn flex-1 flex flex-col items-center py-2">
+                    <span class="text-xs font-bold" data-translate="nav_diagnose">Diagnose</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Content Templates -->
+    <template id="dashboard-template">
+        <div class="p-4 neobrutal min-h-full">
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold" data-translate="dashboard_title">Dashboard</h1>
+                <p data-translate="dashboard_subtitle">Weather & Market prices for <span id="dashboard-location" class="font-semibold">your area</span>.</p>
+            </header>
+            <!-- Weather Section -->
+            <div class="p-4 neobrutal mb-6">
+                <h2 class="text-xl font-bold mb-4" data-translate="weather_forecast">7-Day Weather Forecast</h2>
+                <div id="weather-container" class="space-y-3"></div>
+            </div>
+            <!-- Market Prices Section -->
+            <div class="p-4 neobrutal">
+                <h2 class="text-xl font-bold mb-4" data-translate="market_prices">Market Prices</h2>
+                <div id="market-container" class="space-y-3"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="chat-template">
+        <div class="flex flex-col h-full neobrutal" style="background:#fff;">
+            <header class="p-4 neobrutal" style="border-bottom:3px solid #000;">
+                <h1 class="text-xl font-bold text-center" data-translate="chat_title">AI Advisory</h1>
+            </header>
+            <div id="chat-window" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-4"></div>
+            <div id="chat-input-container" class="p-2 neobrutal flex items-center gap-2" style="border-top:3px solid #000;">
+                <input type="text" id="chat-input" class="neobrutal-input" placeholder="Type or ask a question...">
+                <button id="mic-btn" class="neobrutal-btn mic-button" style="width:auto; padding:12px; min-width:48px;">
+                    🎤
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <template id="diagnose-template">
+        <div class="p-4 neobrutal min-h-full">
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold" data-translate="diagnose_title">Pest & Disease Diagnosis</h1>
+                <p data-translate="diagnose_subtitle">Upload a photo of your crop to get an AI-powered diagnosis.</p>
+            </header>
+            <div class="neobrutal p-6">
+                <div id="image-upload-area" class="neobrutal p-8 text-center cursor-pointer hover:bg-gray-100 transition-colors">
+                    <span style="font-size:2.5em;">📷</span>
+                    <p class="mt-2 block text-sm font-bold" data-translate="upload_prompt">Click to upload an image</p>
+                    <input type="file" id="crop-image-input" class="hidden" accept="image/*">
+                </div>
+                <div id="image-preview-area" class="hidden mt-4 text-center">
+                    <img id="image-preview" src="" alt="Crop Preview" style="max-height:256px; width:auto; border:3px solid #000;">
+                    <button id="analyze-btn" class="neobrutal-btn" data-translate="analyze_image">Analyze Image</button>
+                </div>
+                <div id="diagnosis-result-area" class="hidden mt-6"></div>
+                <div id="diagnosis-loader" class="hidden mt-6 text-center">
+                    <div class="flex items-center justify-center">
+                        <span style="font-size:1.5em;">⏳</span>
+                        <p class="ml-3" data-translate="analyzing">Analyzing...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+<script>
+// ======================= App State and Config =======================
+const appState = {
+    currentPage: 'onboarding-page',
+    language: 'en',
+    userProfile: {
+        mobile: null,
+        location: {
+            state: null,
+            district: null,
+        },
+        crops: [],
+    },
+    chatHistory: [],
+    isRecording: false,
+};
+
+const translations = {
+    en: { welcome_title: "Welcome to AgroAI", welcome_subtitle: "Your smart farming assistant.", select_language: "Select Language", enter_mobile: "Enter Mobile Number", send_otp: "Send OTP", enter_otp: "Enter OTP", verify_otp: "Verify OTP", setup_profile: "Setup Your Profile", profile_subtitle: "This helps us personalize your experience.", state: "State", district: "District", primary_crops: "Primary Crops", save_and_continue: "Save & Continue", nav_dashboard: "Dashboard", nav_chat: "Chat", nav_diagnose: "Diagnose", dashboard_title: "Dashboard", dashboard_subtitle: "Weather & Market prices for", weather_forecast: "7-Day Weather Forecast", market_prices: "Market Prices", chat_title: "AI Advisory", chat_welcome: "Hello! I am your AgroAI assistant. How can I help you today? Ask me about your crops!", chat_placeholder: "Type or ask a question...", diagnose_title: "Pest & Disease Diagnosis", diagnose_subtitle: "Upload a photo of your crop to get an AI-powered diagnosis.", upload_prompt: "Click to upload an image", analyze_image: "Analyze Image", analyzing: "Analyzing...", error_mobile: "Please enter a valid 10-digit mobile number.", error_otp: "Invalid OTP. Please try again.", error_profile: "Please fill all fields.", error_api: "Something went wrong. Please try again.", error_voice: "Could not understand audio. Please try again.", error_mic_permission: "Microphone access denied. Please allow it in your browser settings.", },
+    hi: { welcome_title: "एग्रोएआई में आपका स्वागत है", welcome_subtitle: "आपका स्मार्ट खेती सहायक।", select_language: "भाषा चुनें", enter_mobile: "मोबाइल नंबर दर्ज करें", send_otp: "ओटीपी भेजें", enter_otp: "ओटीपी दर्ज करें", verify_otp: "ओटीपी सत्यापित करें", setup_profile: "अपनी प्रोफ़ाइल सेटअप करें", profile_subtitle: "यह हमें आपके अनुभव को व्यक्तिगत बनाने में मदद करता है।", state: "राज्य", district: "ज़िला", primary_crops: "मुख्य फसलें", save_and_continue: "सहेजें और जारी रखें", nav_dashboard: "डैशबोर्ड", nav_chat: "चैट", nav_diagnose: "निदान", dashboard_title: "डैशबोर्ड", dashboard_subtitle: "के लिए मौसम और बाजार मूल्य", weather_forecast: "7-दिन का मौसम पूर्वानुमान", market_prices: "बाजार मूल्य", chat_title: "एआई सलाहकार", chat_welcome: "नमस्ते! मैं आपका एग्रोएआई सहायक हूं। मैं आज आपकी कैसे मदद कर सकता हूँ? अपनी फसल के बारे में पूछें!", chat_placeholder: "एक प्रश्न टाइप करें या पूछें...", diagnose_title: "कीट और रोग निदान", diagnose_subtitle: "एआई-संचालित निदान प्राप्त करने के लिए अपनी फसल की एक तस्वीर अपलोड करें।", upload_prompt: "एक छवि अपलोड करने के लिए क्लिक करें", analyze_image: "छवि का विश्लेषण करें", analyzing: "विश्लेषण हो रहा है...", error_mobile: "कृपया एक मान्य 10-अंकीय मोबाइल नंबर दर्ज करें।", error_otp: "अमान्य ओटीपी। कृपया पुन: प्रयास करें।", error_profile: "कृपया सभी फ़ील्ड भरें।", error_api: "कुछ गलत हो गया। कृपया पुन: प्रयास करें।", error_voice: "ऑडियो समझ में नहीं आया। कृपया पुन: प्रयास करें।", error_mic_permission: "माइक्रोफ़ोन एक्सेस अस्वीकृत। कृपया इसे अपनी ब्राउज़र सेटिंग्स में अनुमति दें।", },
+    pa: { welcome_title: "ਐਗਰੋਏਆਈ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ", welcome_subtitle: "ਤੁਹਾਡਾ ਸਮਾਰਟ ਖੇਤੀ ਸਹਾਇਕ।", select_language: "ਭਾਸ਼ਾ ਚੁਣੋ", enter_mobile: "ਮੋਬਾਈਲ ਨੰਬਰ ਦਰਜ ਕਰੋ", send_otp: "ਓਟੀਪੀ ਭੇਜੋ", enter_otp: "ਓਟੀਪੀ ਦਰਜ ਕਰੋ", verify_otp: "ਓਟੀਪੀ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ", setup_profile: "ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਸੈਟ ਅਪ ਕਰੋ", profile_subtitle: "ਇਹ ਤੁਹਾਡੇ ਤਜ਼ਰਬੇ ਨੂੰ ਨਿੱਜੀ ਬਣਾਉਣ ਵਿੱਚ ਸਾਡੀ ਮਦਦ ਕਰਦਾ ਹੈ।", state: "ਰਾਜ", district: "ਜ਼ਿਲ੍ਹਾ", primary_crops: "ਮੁੱਖ ਫਸਲਾਂ", save_and_continue: "ਸੇਵ ਕਰੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ", nav_dashboard: "ਡੈਸ਼ਬੋਰਡ", nav_chat: "ਗੱਲਬਾਤ", nav_diagnose: "ਨਿਦਾਨ", dashboard_title: "ਡੈਸ਼ਬੋਰਡ", dashboard_subtitle: "ਲਈ ਮੌਸਮ ਅਤੇ ਬਾਜ਼ਾਰ ਦੀਆਂ ਕੀਮਤਾਂ", weather_forecast: "7-ਦਿਨ ਦਾ ਮੌਸਮ ਪੂਰਵ ਅਨੁਮਾਨ", market_prices: "ਬਾਜ਼ਾਰ ਦੀਆਂ ਕੀਮਤਾਂ", chat_title: "ਏਆਈ ਸਲਾਹਕਾਰ", chat_welcome: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ ਐਗਰੋਏਆਈ ਸਹਾਇਕ ਹਾਂ। ਮੈਂ ਅੱਜ ਤੁਹਾਡੀ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ? ਆਪਣੀ ਫਸਲ ਬਾਰੇ ਪੁੱਛੋ!", chat_placeholder: "ਇੱਕ ਸਵਾਲ ਟਾਈਪ ਕਰੋ ਜਾਂ ਪੁੱਛੋ...", diagnose_title: "ਕੀੜੇ ਅਤੇ ਬਿਮਾਰੀ ਦਾ ਨਿਦਾਨ", diagnose_subtitle: "ਏਆਈ-ਸੰਚਾਲਿਤ ਨਿਦਾਨ ਪ੍ਰਾਪਤ ਕਰਨ ਲਈ ਆਪਣੀ ਫਸਲ ਦੀ ਇੱਕ ਫੋਟੋ ਅਪਲੋਡ ਕਰੋ।", upload_prompt: "ਇੱਕ ਚਿੱਤਰ ਅਪਲੋਡ ਕਰਨ ਲਈ ਕਲਿੱਕ ਕਰੋ", analyze_image: "ਚਿੱਤਰ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰੋ", analyzing: "ਵਿਸ਼ਲੇਸ਼ਣ ਹੋ ਰਿਹਾ ਹੈ...", error_mobile: "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ 10-ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਰਜ ਕਰੋ।", error_otp: "ਅਵੈਧ ਓਟੀਪੀ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", error_profile: "ਕਿਰਪਾ ਕਰਕੇ ਸਾਰੇ ਖੇਤਰ ਭਰੋ।", error_api: "ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", error_voice: "ਆਡੀਓ ਨੂੰ ਸਮਝ ਨਹੀਂ ਸਕਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।", error_mic_permission: "ਮਾਈਕ੍ਰੋਫੋਨ ਪਹੁੰਚ ਤੋਂ ਇਨਕਾਰ ਕੀਤਾ ਗਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਇਸਨੂੰ ਆਪਣੀ ਬ੍ਰਾਊਜ਼ਰ ਸੈਟਿੰਗਜ਼ ਵਿੱਚ ਆਗਿਆ ਦਿਓ।", }
+};
+
+// ======================= Helper Functions =======================
+function navigateTo(pageId) {
+    appState.currentPage = pageId;
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.toggle('active', page.id === pageId);
+    });
+    if (pageId === 'main-app') {
+        document.querySelector(`.nav-btn[data-target="dashboard-content"]`).click();
+    }
+}
+function translateUI(lang) {
+    appState.language = lang;
+    document.querySelectorAll('[data-translate]').forEach(el => {
+        const key = el.getAttribute('data-translate');
+        if (translations[lang] && translations[lang][key]) {
+            el.innerHTML = translations[lang][key];
+        }
+    });
+    const chatInput = document.getElementById('chat-input');
+    if(chatInput) chatInput.placeholder = translations[lang].chat_placeholder;
+}
+
+// ======================= Onboarding Logic =======================
+document.getElementById('language-select').addEventListener('change', (e) => {
+    translateUI(e.target.value);
+});
+document.getElementById('send-otp-btn').addEventListener('click', () => {
+    const mobileInput = document.getElementById('mobile-number');
+    document.getElementById('onboarding-error').textContent = '';
+    if (mobileInput.value.length === 10 && /^\d{10}$/.test(mobileInput.value)) {
+        appState.userProfile.mobile = mobileInput.value;
+        document.getElementById('otp-section').classList.remove('hidden');
+        document.getElementById('otp-input').focus();
+    } else {
+        document.getElementById('onboarding-error').textContent = translations[appState.language].error_mobile;
+    }
+});
+document.getElementById('verify-otp-btn').addEventListener('click', () => {
+    const otpInput = document.getElementById('otp-input');
+    document.getElementById('onboarding-error').textContent = '';
+    if (otpInput.value === "123456") {
+        navigateTo('profile-page');
+    } else {
+        document.getElementById('onboarding-error').textContent = translations[appState.language].error_otp;
+    }
+});
+
+// ======================= Profile Logic =======================
+document.getElementById('save-profile-btn').addEventListener('click', () => {
+    const state = document.getElementById('state-select').value;
+    const district = document.getElementById('district-input').value;
+    const crops = document.getElementById('crops-input').value;
+    document.getElementById('profile-error').textContent = '';
+    if (state && district && crops) {
+        appState.userProfile.location.state = state;
+        appState.userProfile.location.district = district;
+        appState.userProfile.crops = crops.split(',').map(c => c.trim());
+        navigateTo('main-app');
+    } else {
+        document.getElementById('profile-error').textContent = translations[appState.language].error_profile;
+    }
+});
+
+// ======================= Main App Navigation =======================
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            b.classList.remove('text-green-600');
+        });
+        btn.classList.add('text-green-600');
+        const targetId = btn.dataset.target;
+        const appContent = document.getElementById('app-content');
+        const template = document.getElementById(`${targetId.replace('-content', '')}-template`);
+        appContent.innerHTML = '';
+        appContent.appendChild(template.content.cloneNode(true));
+        translateUI(appState.language);
+        if (targetId === 'dashboard-content') initDashboard();
+        else if (targetId === 'chat-content') initChat();
+        else if (targetId === 'diagnose-content') initDiagnose();
+    });
+});
+
+// ======================= Dashboard Logic =======================
+function initDashboard() {
+    document.getElementById('dashboard-location').textContent = `${appState.userProfile.location.district}, ${appState.userProfile.location.state}`;
+    const weatherContainer = document.getElementById('weather-container');
+    const marketContainer = document.getElementById('market-container');
+    // Mock Data
+    const mockWeatherData = [
+        { day: 'Today', icon: '☀️', temp: '34°C', condition: 'Sunny' },
+        { day: 'Tomorrow', icon: '⛅️', temp: '32°C', condition: 'Partly Cloudy' },
+        { day: 'Mon', icon: '🌦️', temp: '31°C', condition: 'Light Rain' },
+        { day: 'Tue', icon: '☀️', temp: '35°C', condition: 'Sunny' },
+        { day: 'Wed', icon: '🌩️', temp: '29°C', condition: 'Thunderstorm' },
+    ];
+    const mockMarketData = {
+        'Wheat': { price: '₹2,100 / quintal', change: '+1.5%' },
+        'Rice': { price: '₹3,500 / quintal', change: '-0.8%' },
+    };
+    weatherContainer.innerHTML = mockWeatherData.map(w => `
+        <div class="flex justify-between items-center" style="margin-bottom:5px;">
+            <span class="font-bold" style="flex:1;">${w.day}</span>
+            <span style="flex:1;text-align:center;">${w.icon}</span>
+            <span style="flex:1;text-align:center;">${w.condition}</span>
+            <span class="font-bold" style="flex:1;text-align:right;">${w.temp}</span>
+        </div>
+    `).join('');
+    marketContainer.innerHTML = appState.userProfile.crops.map(crop => {
+        const data = mockMarketData[crop] || { price: 'N/A', change: '' };
+        const changeColor = data.change.startsWith('+') ? 'color:green;' : (data.change.startsWith('-') ? 'color:red;' : '');
+        return `
+            <div class="flex justify-between items-center">
+                <span class="font-bold" style="font-size:1.1em;">${crop}</span>
+                <div style="text-align:right;">
+                    <span class="font-bold" style="font-size:1.1em;">${data.price}</span>
+                    <span class="ml-2" style="${changeColor}">${data.change}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ======================= Chat Logic =======================
+function initChat() {
+    const chatWindow = document.getElementById('chat-window');
+    const chatInput = document.getElementById('chat-input');
+    const micBtn = document.getElementById('mic-btn');
+    chatWindow.innerHTML = '';
+    if (appState.chatHistory.length === 0) addMessageToChat('bot', translations[appState.language].chat_welcome);
+    else appState.chatHistory.forEach(msg => addMessageToChat(msg.sender, msg.text));
+    scrollToBottom();
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+            handleUserMessage(chatInput.value.trim());
+            chatInput.value = '';
+        }
+    });
+    // Voice recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = appState.language === 'hi' ? 'hi-IN' : (appState.language === 'pa' ? 'pa-IN' : 'en-US');
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        micBtn.addEventListener('click', () => {
+            if (appState.isRecording) {
+                recognition.stop();
+                return;
+            }
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(() => {
+                    recognition.start();
+                    appState.isRecording = true;
+                    micBtn.classList.add('recording');
+                })
+                .catch(() => {
+                    alert(translations[appState.language].error_mic_permission);
+                });
+        });
+        recognition.onresult = (event) => {
+            const speechResult = event.results[0][0].transcript;
+            handleUserMessage(speechResult);
+        };
+        recognition.onspeechend = () => recognition.stop();
+        recognition.onend = () => {
+            micBtn.classList.remove('recording');
+            appState.isRecording = false;
+        };
+        recognition.onerror = () => {
+            addMessageToChat('bot', translations[appState.language].error_voice);
+        };
+    } else {
+        micBtn.style.display = 'none';
+    }
+}
+function scrollToBottom() {
+    const chatWindow = document.getElementById('chat-window');
+    if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+function addMessageToChat(sender, text) {
+    const chatWindow = document.getElementById('chat-window');
+    if (!chatWindow) return;
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-bubble', sender);
+    messageDiv.textContent = text;
+    chatWindow.appendChild(messageDiv);
+    scrollToBottom();
+}
+function handleUserMessage(message) {
+    addMessageToChat('user', message);
+    appState.chatHistory.push({ sender: 'user', text: message });
+    getAIResponse(message);
+}
+async function getAIResponse(userMessage) {
+    const chatWindow = document.getElementById('chat-window');
+    const botTypingDiv = document.createElement('div');
+    botTypingDiv.classList.add('chat-bubble', 'bot');
+    botTypingDiv.innerHTML = `<span style="font-size:1.4em;">...</span>`;
+    chatWindow.appendChild(botTypingDiv);
+    scrollToBottom();
+    const apiKey = ""; // <-- PUT YOUR GOOGLE GEMINI API KEY HERE
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    const systemPrompt = `You are AgroAI, a friendly and expert agricultural assistant for small farmers in India.
+Your language for response should be ${appState.language === 'hi' ? 'Hindi' : (appState.language === 'pa' ? 'Punjabi' : 'English')}.
+Keep your answers simple, clear, and actionable. 
+Here is the user's profile:
+- Location: ${appState.userProfile.location.district}, ${appState.userProfile.location.state}
+- Primary Crops: ${appState.userProfile.crops.join(', ')}
+Base your advice on this profile.`;
+    const payload = {
+        contents: [{ parts: [{ text: userMessage }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+    };
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        botTypingDiv.remove();
+        if (text) {
+            addMessageToChat('bot', text);
+            appState.chatHistory.push({ sender: 'bot', text: text });
+        } else {
+            throw new Error("No text in response");
+        }
+    } catch (error) {
+        botTypingDiv.remove();
+        const errorText = translations[appState.language].error_api;
+        addMessageToChat('bot', errorText);
+        appState.chatHistory.push({ sender: 'bot', text: errorText });
+    }
+}
+
+// ======================= Diagnosis Logic =======================
+function initDiagnose() {
+    const uploadArea = document.getElementById('image-upload-area');
+    const imageInput = document.getElementById('crop-image-input');
+    const previewArea = document.getElementById('image-preview-area');
+    const previewImg = document.getElementById('image-preview');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    uploadArea.addEventListener('click', () => imageInput.click());
+    imageInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                uploadArea.classList.add('hidden');
+                previewArea.classList.remove('hidden');
+                document.getElementById('diagnosis-result-area').classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    analyzeBtn.addEventListener('click', async () => {
+        const base64Image = previewImg.src.split(',')[1];
+        if (!base64Image) return;
+        const resultArea = document.getElementById('diagnosis-result-area');
+        const loader = document.getElementById('diagnosis-loader');
+        resultArea.innerHTML = '';
+        resultArea.classList.add('hidden');
+        loader.classList.remove('hidden');
+        const apiKey = ""; // <-- PUT YOUR GOOGLE GEMINI API KEY HERE
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const prompt = `Analyze this image of a plant. Identify any potential diseases or pests. 
+Provide a diagnosis with a confidence level (High, Medium, Low). 
+Then, suggest simple, actionable treatment options (both organic and chemical). 
+The farmer is located in ${appState.userProfile.location.district}, ${appState.userProfile.location.state}.
+Respond in ${appState.language === 'hi' ? 'Hindi' : (appState.language === 'pa' ? 'Punjabi' : 'English')}. 
+Format your response clearly with headings for Diagnosis, Confidence, and Recommendations.`;
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+                ]
+            }]
+        };
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('API Request Failed');
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+                const formattedText = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+                resultArea.innerHTML = `<div class="p-4">${formattedText}</div>`;
+            } else {
+                throw new Error('No text in response');
+            }
+        } catch (error) {
+            resultArea.innerHTML = `<p style="color:red;">${translations[appState.language].error_api}</p>`;
+        } finally {
+            loader.classList.add('hidden');
+            resultArea.classList.remove('hidden');
+        }
+    });
+}
+
+// ======================= App Initialization =======================
+window.addEventListener('load', () => {
+    const userLang = navigator.language.slice(0, 2);
+    const langSelect = document.getElementById('language-select');
+    if (['en', 'hi', 'pa'].includes(userLang)) {
+        langSelect.value = userLang;
+        appState.language = userLang;
+    }
+    translateUI(appState.language);
+    navigateTo('onboarding-page');
+});
+</script>
+</body>
+</html>
