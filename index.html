@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroAI - Smart Crop Advisory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+        }
+        .hidden { display: none; }
+        .page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .page.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            word-wrap: break-word;
+        }
+        .chat-bubble.user {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+        }
+        .chat-bubble.bot {
+            background-color: #f1f0f0;
+            align-self: flex-start;
+        }
+        .mic-button.recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(22, 163, 74, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+
+    <!-- App Container -->
+    <div id="app" class="h-full w-full max-w-lg mx-auto bg-white shadow-lg relative overflow-hidden">
+
+        <!-- ======================= Onboarding Page ======================= -->
+        <div id="onboarding-page" class="page active flex flex-col items-center justify-center p-8 bg-green-50">
+            <div class="text-center">
+                <svg class="mx-auto h-20 w-20 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h10a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.707 4.5l.001 2.502M16.293 4.5l-.001 2.502M12 2.5V5M4.5 9.5l1.414 1.414M18.086 9.5l-1.414 1.414M12 21.5a9.5 9.5 0 110-19 9.5 9.5 0 010 19z" />
+                </svg>
+                <h1 class="mt-4 text-3xl font-bold text-gray-800" data-translate="welcome_title">Welcome to AgroAI</h1>
+                <p class="mt-2 text-gray-600" data-translate="welcome_subtitle">Your smart farming assistant.</p>
+            </div>
+            
+            <div class="mt-12 w-full">
+                <label for="language-select" class="block text-sm font-medium text-gray-700" data-translate="select_language">Select Language</label>
+                <select id="language-select" class="mt-1 block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md shadow-sm">
+                    <option value="en">English</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+                </select>
+            </div>
+
+            <div class="mt-6 w-full">
+                 <label for="mobile-number" class="block text-sm font-medium text-gray-700" data-translate="enter_mobile">Enter Mobile Number</label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">+91</span>
+                    <input type="tel" id="mobile-number" class="flex-1 block w-full rounded-none rounded-r-md p-3 border-gray-300 focus:ring-green-500 focus:border-green-500" placeholder="00000-00000">
+                </div>
+            </div>
+
+            <button id="send-otp-btn" class="mt-8 w-full bg-green-600 text-white py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" data-translate="send_otp">Send OTP</button>
+
+            <!-- OTP Section (hidden by default) -->
+            <div id="otp-section" class="hidden mt-6 w-full">
+                 <label for="otp-input" class="block text-sm font-medium text-gray-700" data-translate="enter_otp">Enter OTP</label>
+                 <input type="text" id="otp-input" class="mt-1 block w-full p-3 border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" placeholder="123456">
+                 <button id="verify-otp-btn" class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-md shadow-sm font-medium hover:bg-green-700 focus:outline-none" data-translate="verify_otp">Verify OTP</button>
+            </div>
+             <p id="onboarding-error" class="text-red-500 text-sm mt-2"></p>
+        </div>
+        
+        <!-- ======================= Profile Page ======================= -->
+        <div id="profile-page" class="page flex flex-col justify-center p-8 bg-green-50">
+             <h2 class="text-2xl font-bold text-gray-800 text-center" data-translate="setup_profile">Setup Your Profile</h2>
+             <p class="text-gray-600 text-center mt-1 mb-8" data-translate="profile_subtitle">This helps us personalize your experience.</p>
+             <div class="space-y-6">
+                <div>
+                    <label for="state-select" class="block text-sm font-medium text-gray-700" data-translate="state">State</label>
+                    <select id="state-select" class="mt-1 block w-full p-3 border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500">
+                        <option value="">Select State</option>
+                        <option value="Punjab">Punjab</option>
+                        <option value="Uttar Pradesh">Uttar Pradesh</option>
+                        <option value="Haryana">Haryana</option>
+                        <option value="Rajasthan">Rajasthan</option>
+                        <!-- Add other states as needed -->
+                    </select>
+                </div>
+                <div>
+                     <label for="district-input" class="block text-sm font-medium text-gray-700" data-translate="district">District</label>
+                     <input type="text" id="district-input" class="mt-1 block w-full p-3 border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" placeholder="e.g., Ludhiana">
+                </div>
+                 <div>
+                     <label for="crops-input" class="block text-sm font-medium text-gray-700" data-translate="primary_crops">Primary Crops</label>
+                     <input type="text" id="crops-input" class="mt-1 block w-full p-3 border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500" placeholder="e.g., Wheat, Rice">
+                </div>
+             </div>
+             <p id="profile-error" class="text-red-500 text-sm mt-4 text-center"></p>
+             <button id="save-profile-btn" class="mt-8 w-full bg-green-600 text-white py-3 px-4 rounded-md shadow-sm font-medium hover:bg-green-700" data-translate="save_and_continue">Save & Continue</button>
+        </div>
+
+        <!-- ======================= Main App Area ======================= -->
+        <div id="main-app" class="page flex flex-col h-full">
+            <main id="app-content" class="flex-1 overflow-y-auto pb-20">
+                <!-- Content for Dashboard, Chat, Diagnose will be injected here -->
+            </main>
+            <!-- Bottom Navigation -->
+            <nav class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around shadow-inner">
+                <button data-target="dashboard-content" class="nav-btn flex-1 flex flex-col items-center py-2 text-green-600 border-t-2 border-green-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    <span class="text-xs font-medium" data-translate="nav_dashboard">Dashboard</span>
+                </button>
+                <button data-target="chat-content" class="nav-btn flex-1 flex flex-col items-center py-2 text-gray-500">
+                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    <span class="text-xs font-medium" data-translate="nav_chat">Chat</span>
+                </button>
+                <button data-target="diagnose-content" class="nav-btn flex-1 flex flex-col items-center py-2 text-gray-500">
+                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span class="text-xs font-medium" data-translate="nav_diagnose">Diagnose</span>
+                </button>
+            </nav>
+        </div>
+
+    </div>
+
+    <!-- Content Templates -->
+    <template id="dashboard-template">
+        <div class="p-4 sm:p-6 bg-gray-50 min-h-full">
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold text-gray-800" data-translate="dashboard_title">Dashboard</h1>
+                <p class="text-gray-600" data-translate="dashboard_subtitle">Weather & Market prices for <span id="dashboard-location" class="font-semibold">your area</span>.</p>
+            </header>
+            
+            <!-- Weather Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                    <span data-translate="weather_forecast">7-Day Weather Forecast</span>
+                </h2>
+                <div id="weather-container" class="space-y-3">
+                    <!-- Weather data will be injected here -->
+                </div>
+            </div>
+
+            <!-- Market Prices Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                     <svg class="w-6 h-6 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                    <span data-translate="market_prices">Market Prices</span>
+                </h2>
+                <div id="market-container" class="space-y-3">
+                    <!-- Market prices will be injected here -->
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="chat-template">
+        <div class="flex flex-col h-full bg-gray-100">
+            <header class="bg-white p-4 border-b shadow-sm sticky top-0">
+                <h1 class="text-xl font-bold text-center text-gray-800" data-translate="chat_title">AI Advisory</h1>
+            </header>
+            <div id="chat-window" class="flex-1 p-4 overflow-y-auto space-y-4">
+                <!-- Chat messages will be injected here -->
+                <div class="chat-bubble bot" data-translate="chat_welcome">Hello! I am your AgroAI assistant. How can I help you today? Ask me about your crops!</div>
+            </div>
+            <div id="chat-input-container" class="p-2 bg-white border-t flex items-center gap-2">
+                <input type="text" id="chat-input" class="flex-1 w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Type or ask a question..." data-translate="chat_placeholder">
+                <button id="mic-btn" class="p-3 bg-green-600 text-white rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 mic-button">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-14 0m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <template id="diagnose-template">
+        <div class="p-4 sm:p-6 bg-gray-50 min-h-full">
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold text-gray-800" data-translate="diagnose_title">Pest & Disease Diagnosis</h1>
+                <p class="text-gray-600" data-translate="diagnose_subtitle">Upload a photo of your crop to get an AI-powered diagnosis.</p>
+            </header>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div id="image-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-green-500 hover:bg-green-50 transition-colors">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <p class="mt-2 block text-sm font-medium text-gray-600" data-translate="upload_prompt">Click to upload an image</p>
+                    <input type="file" id="crop-image-input" class="hidden" accept="image/*">
+                </div>
+
+                <div id="image-preview-area" class="hidden mt-4 text-center">
+                    <img id="image-preview" src="" alt="Crop Preview" class="max-h-64 w-auto mx-auto rounded-lg shadow-sm">
+                    <button id="analyze-btn" class="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-md shadow-sm font-medium hover:bg-green-700" data-translate="analyze_image">Analyze Image</button>
+                </div>
+                
+                <div id="diagnosis-result-area" class="hidden mt-6">
+                    <!-- Diagnosis results will be shown here -->
+                </div>
+                 <div id="diagnosis-loader" class="hidden mt-6 text-center">
+                    <div class="flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        <p class="ml-3 text-gray-600" data-translate="analyzing">Analyzing...</p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </template>
+    
+<script>
+// ======================= App State and Config =======================
+const appState = {
+    currentPage: 'onboarding-page',
+    language: 'en',
+    userProfile: {
+        mobile: null,
+        location: {
+            state: null,
+            district: null,
+        },
+        crops: [],
+    },
+    chatHistory: [],
+    isRecording: false,
+};
+
+const translations = {
+    en: {
+        welcome_title: "Welcome to AgroAI",
+        welcome_subtitle: "Your smart farming assistant.",
+        select_language: "Select Language",
+        enter_mobile: "Enter Mobile Number",
+        send_otp: "Send OTP",
+        enter_otp: "Enter OTP",
+        verify_otp: "Verify OTP",
+        setup_profile: "Setup Your Profile",
+        profile_subtitle: "This helps us personalize your experience.",
+        state: "State",
+        district: "District",
+        primary_crops: "Primary Crops",
+        save_and_continue: "Save & Continue",
+        nav_dashboard: "Dashboard",
+        nav_chat: "Chat",
+        nav_diagnose: "Diagnose",
+        dashboard_title: "Dashboard",
+        dashboard_subtitle: "Weather & Market prices for",
+        weather_forecast: "7-Day Weather Forecast",
+        market_prices: "Market Prices",
+        chat_title: "AI Advisory",
+        chat_welcome: "Hello! I am your AgroAI assistant. How can I help you today? Ask me about your crops!",
+        chat_placeholder: "Type or ask a question...",
+        diagnose_title: "Pest & Disease Diagnosis",
+        diagnose_subtitle: "Upload a photo of your crop to get an AI-powered diagnosis.",
+        upload_prompt: "Click to upload an image",
+        analyze_image: "Analyze Image",
+        analyzing: "Analyzing...",
+        error_mobile: "Please enter a valid 10-digit mobile number.",
+        error_otp: "Invalid OTP. Please try again.",
+        error_profile: "Please fill all fields.",
+        error_api: "Something went wrong. Please try again.",
+        error_voice: "Could not understand audio. Please try again.",
+        error_mic_permission: "Microphone access denied. Please allow it in your browser settings.",
+    },
+    hi: {
+        welcome_title: "एग्रोएआई में आपका स्वागत है",
+        welcome_subtitle: "आपका स्मार्ट खेती सहायक।",
+        select_language: "भाषा चुनें",
+        enter_mobile: "मोबाइल नंबर दर्ज करें",
+        send_otp: "ओटीपी भेजें",
+        enter_otp: "ओटीपी दर्ज करें",
+        verify_otp: "ओटीपी सत्यापित करें",
+        setup_profile: "अपनी प्रोफ़ाइल सेटअप करें",
+        profile_subtitle: "यह हमें आपके अनुभव को व्यक्तिगत बनाने में मदद करता है।",
+        state: "राज्य",
+        district: "ज़िला",
+        primary_crops: "मुख्य फसलें",
+        save_and_continue: "सहेजें और जारी रखें",
+        nav_dashboard: "डैशबोर्ड",
+        nav_chat: "चैट",
+        nav_diagnose: "निदान",
+        dashboard_title: "डैशबोर्ड",
+        dashboard_subtitle: "के लिए मौसम और बाजार मूल्य",
+        weather_forecast: "7-दिन का मौसम पूर्वानुमान",
+        market_prices: "बाजार मूल्य",
+        chat_title: "एआई सलाहकार",
+        chat_welcome: "नमस्ते! मैं आपका एग्रोएआई सहायक हूं। मैं आज आपकी कैसे मदद कर सकता हूं? अपनी फसलों के बारे में पूछें!",
+        chat_placeholder: "एक प्रश्न टाइप करें या पूछें...",
+        diagnose_title: "कीट और रोग निदान",
+        diagnose_subtitle: "एआई-संचालित निदान प्राप्त करने के लिए अपनी फसल की एक तस्वीर अपलोड करें।",
+        upload_prompt: "एक छवि अपलोड करने के लिए क्लिक करें",
+        analyze_image: "छवि का विश्लेषण करें",
+        analyzing: "विश्लेषण हो रहा है...",
+        error_mobile: "कृपया एक मान्य 10-अंकीय मोबाइल नंबर दर्ज करें।",
+        error_otp: "अमान्य ओटीपी। कृपया पुन: प्रयास करें।",
+        error_profile: "कृपया सभी फ़ील्ड भरें।",
+        error_api: "कुछ गलत हो गया। कृपया पुन: प्रयास करें।",
+        error_voice: "ऑडियो समझ में नहीं आया। कृपया पुन: प्रयास करें।",
+        error_mic_permission: "माइक्रोफ़ोन एक्सेस अस्वीकृत। कृपया इसे अपनी ब्राउज़र सेटिंग्स में अनुमति दें।",
+    },
+    pa: {
+        welcome_title: "ਐਗਰੋਏਆਈ ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ",
+        welcome_subtitle: "ਤੁਹਾਡਾ ਸਮਾਰਟ ਖੇਤੀ ਸਹਾਇਕ।",
+        select_language: "ਭਾਸ਼ਾ ਚੁਣੋ",
+        enter_mobile: "ਮੋਬਾਈਲ ਨੰਬਰ ਦਰਜ ਕਰੋ",
+        send_otp: "ਓਟੀਪੀ ਭੇਜੋ",
+        enter_otp: "ਓਟੀਪੀ ਦਰਜ ਕਰੋ",
+        verify_otp: "ਓਟੀਪੀ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ",
+        setup_profile: "ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਸੈਟ ਅਪ ਕਰੋ",
+        profile_subtitle: "ਇਹ ਤੁਹਾਡੇ ਤਜ਼ਰਬੇ ਨੂੰ ਨਿੱਜੀ ਬਣਾਉਣ ਵਿੱਚ ਸਾਡੀ ਮਦਦ ਕਰਦਾ ਹੈ।",
+        state: "ਰਾਜ",
+        district: "ਜ਼ਿਲ੍ਹਾ",
+        primary_crops: "ਮੁੱਖ ਫਸਲਾਂ",
+        save_and_continue: "ਸੇਵ ਕਰੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ",
+        nav_dashboard: "ਡੈਸ਼ਬੋਰਡ",
+        nav_chat: "ਗੱਲਬਾਤ",
+        nav_diagnose: "ਨਿਦਾਨ",
+        dashboard_title: "ਡੈਸ਼ਬੋਰਡ",
+        dashboard_subtitle: "ਲਈ ਮੌਸਮ ਅਤੇ ਬਾਜ਼ਾਰ ਦੀਆਂ ਕੀਮਤਾਂ",
+        weather_forecast: "7-ਦਿਨ ਦਾ ਮੌਸਮ ਪੂਰਵ ਅਨੁਮਾਨ",
+        market_prices: "ਬਾਜ਼ਾਰ ਦੀਆਂ ਕੀਮਤਾਂ",
+        chat_title: "ਏਆਈ ਸਲਾਹਕਾਰ",
+        chat_welcome: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ ਐਗਰੋਏਆਈ ਸਹਾਇਕ ਹਾਂ। ਮੈਂ ਅੱਜ ਤੁਹਾਡੀ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ? ਆਪਣੀਆਂ ਫਸਲਾਂ ਬਾਰੇ ਪੁੱਛੋ!",
+        chat_placeholder: "ਇੱਕ ਸਵਾਲ ਟਾਈਪ ਕਰੋ ਜਾਂ ਪੁੱਛੋ...",
+        diagnose_title: "ਕੀੜੇ ਅਤੇ ਬਿਮਾਰੀ ਦਾ ਨਿਦਾਨ",
+        diagnose_subtitle: "ਏਆਈ-ਸੰਚਾਲਿਤ ਨਿਦਾਨ ਪ੍ਰਾਪਤ ਕਰਨ ਲਈ ਆਪਣੀ ਫਸਲ ਦੀ ਇੱਕ ਫੋਟੋ ਅਪਲੋਡ ਕਰੋ।",
+        upload_prompt: "ਇੱਕ ਚਿੱਤਰ ਅਪਲੋਡ ਕਰਨ ਲਈ ਕਲਿੱਕ ਕਰੋ",
+        analyze_image: "ਚਿੱਤਰ ਦਾ ਵਿਸ਼ਲੇਸ਼ਣ ਕਰੋ",
+        analyzing: "ਵਿਸ਼ਲੇਸ਼ਣ ਹੋ ਰਿਹਾ ਹੈ...",
+        error_mobile: "ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ 10-ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਰਜ ਕਰੋ।",
+        error_otp: "ਅਵੈਧ ਓਟੀਪੀ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+        error_profile: "ਕਿਰਪਾ ਕਰਕੇ ਸਾਰੇ ਖੇਤਰ ਭਰੋ।",
+        error_api: "ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+        error_voice: "ਆਡੀਓ ਨੂੰ ਸਮਝ ਨਹੀਂ ਸਕਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+        error_mic_permission: "ਮਾਈਕ੍ਰੋਫੋਨ ਪਹੁੰਚ ਤੋਂ ਇਨਕਾਰ ਕੀਤਾ ਗਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਇਸਨੂੰ ਆਪਣੀ ਬ੍ਰਾਊਜ਼ਰ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਆਗਿਆ ਦਿਓ।",
+    }
+};
+
+// ======================= DOM Elements =======================
+const pages = document.querySelectorAll('.page');
+const onboardingError = document.getElementById('onboarding-error');
+const profileError = document.getElementById('profile-error');
+
+// ======================= Helper Functions =======================
+function navigateTo(pageId) {
+    appState.currentPage = pageId;
+    pages.forEach(page => {
+        page.classList.toggle('active', page.id === pageId);
+    });
+    // If navigating to main app, load default content
+    if (pageId === 'main-app') {
+        const defaultContent = 'dashboard-content';
+        document.querySelector(`.nav-btn[data-target="${defaultContent}"]`).click();
+    }
+}
+
+function translateUI(lang) {
+    appState.language = lang;
+    document.querySelectorAll('[data-translate]').forEach(el => {
+        const key = el.getAttribute('data-translate');
+        if (translations[lang] && translations[lang][key]) {
+            el.innerHTML = translations[lang][key];
+        }
+    });
+    // Special case for placeholders
+    const chatInput = document.getElementById('chat-input');
+    if(chatInput) {
+       chatInput.placeholder = translations[lang].chat_placeholder;
+    }
+}
+
+function base64ToArrayBuffer(base64) {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+// ======================= Onboarding Logic =======================
+document.getElementById('language-select').addEventListener('change', (e) => {
+    translateUI(e.target.value);
+});
+
+document.getElementById('send-otp-btn').addEventListener('click', () => {
+    const mobileInput = document.getElementById('mobile-number');
+    onboardingError.textContent = '';
+    if (mobileInput.value.length === 10 && /^\d{10}$/.test(mobileInput.value)) {
+        appState.userProfile.mobile = mobileInput.value;
+        // Simulate sending OTP
+        document.getElementById('otp-section').classList.remove('hidden');
+        document.getElementById('otp-input').focus();
+    } else {
+        onboardingError.textContent = translations[appState.language].error_mobile;
+    }
+});
+
+document.getElementById('verify-otp-btn').addEventListener('click', () => {
+    const otpInput = document.getElementById('otp-input');
+    onboardingError.textContent = '';
+    // Simulate OTP verification
+    if (otpInput.value === "123456") {
+        navigateTo('profile-page');
+    } else {
+        onboardingError.textContent = translations[appState.language].error_otp;
+    }
+});
+
+// ======================= Profile Logic =======================
+document.getElementById('save-profile-btn').addEventListener('click', () => {
+    const state = document.getElementById('state-select').value;
+    const district = document.getElementById('district-input').value;
+    const crops = document.getElementById('crops-input').value;
+    profileError.textContent = '';
+
+    if (state && district && crops) {
+        appState.userProfile.location.state = state;
+        appState.userProfile.location.district = district;
+        appState.userProfile.crops = crops.split(',').map(c => c.trim());
+        navigateTo('main-app');
+    } else {
+        profileError.textContent = translations[appState.language].error_profile;
+    }
+});
+
+// ======================= Main App Navigation =======================
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Update button styles
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            b.classList.remove('text-green-600', 'border-t-2', 'border-green-600');
+            b.classList.add('text-gray-500');
+        });
+        btn.classList.add('text-green-600', 'border-t-2', 'border-green-600');
+        btn.classList.remove('text-gray-500');
+
+        // Load content
+        const targetId = btn.dataset.target;
+        const appContent = document.getElementById('app-content');
+        const template = document.getElementById(`${targetId.replace('-content', '')}-template`);
+        appContent.innerHTML = '';
+        appContent.appendChild(template.content.cloneNode(true));
+        translateUI(appState.language); // Re-apply translations for new content
+        
+        // Add event listeners for the new content
+        if (targetId === 'dashboard-content') {
+            initDashboard();
+        } else if (targetId === 'chat-content') {
+            initChat();
+        } else if (targetId === 'diagnose-content') {
+            initDiagnose();
+        }
+    });
+});
+
+// ======================= Dashboard Logic =======================
+function initDashboard() {
+    document.getElementById('dashboard-location').textContent = `${appState.userProfile.location.district}, ${appState.userProfile.location.state}`;
+    
+    const weatherContainer = document.getElementById('weather-container');
+    const marketContainer = document.getElementById('market-container');
+
+    // Mock Data
+    const mockWeatherData = [
+        { day: 'Today', icon: '☀️', temp: '34°C', condition: 'Sunny' },
+        { day: 'Tomorrow', icon: '⛅️', temp: '32°C', condition: 'Partly Cloudy' },
+        { day: 'Mon', icon: '🌦️', temp: '31°C', condition: 'Light Rain' },
+        { day: 'Tue', icon: '☀️', temp: '35°C', condition: 'Sunny' },
+        { day: 'Wed', icon: '🌩️', temp: '29°C', condition: 'Thunderstorm' },
+    ];
+
+    const mockMarketData = {
+        'Wheat': { price: '₹2,100 / quintal', change: '+1.5%' },
+        'Rice': { price: '₹3,500 / quintal', change: '-0.8%' },
+    };
+
+    weatherContainer.innerHTML = mockWeatherData.map(w => `
+        <div class="flex justify-between items-center text-gray-600">
+            <span class="font-medium w-1/4">${w.day}</span>
+            <span class="text-2xl w-1/4 text-center">${w.icon}</span>
+            <span class="w-1/4 text-center">${w.condition}</span>
+            <span class="font-semibold w-1/4 text-right">${w.temp}</span>
+        </div>
+    `).join('');
+
+    marketContainer.innerHTML = appState.userProfile.crops.map(crop => {
+        const data = mockMarketData[crop] || { price: 'N/A', change: '' };
+        const changeColor = data.change.startsWith('+') ? 'text-green-600' : 'text-red-600';
+        return `
+            <div class="flex justify-between items-center text-gray-700">
+                <span class="font-semibold text-lg">${crop}</span>
+                <div class="text-right">
+                    <span class="font-bold text-lg">${data.price}</span>
+                    <span class="text-sm ml-2 ${changeColor}">${data.change}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ======================= Chat Logic =======================
+function initChat() {
+    const chatWindow = document.getElementById('chat-window');
+    const chatInput = document.getElementById('chat-input');
+    const micBtn = document.getElementById('mic-btn');
+    
+    // Load chat history
+    appState.chatHistory.forEach(msg => addMessageToChat(msg.sender, msg.text));
+    scrollToBottom();
+
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+            handleUserMessage(chatInput.value.trim());
+            chatInput.value = '';
+        }
+    });
+
+    // Voice recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = appState.language === 'hi' ? 'hi-IN' : (appState.language === 'pa' ? 'pa-IN' : 'en-US');
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        micBtn.addEventListener('click', () => {
+            if (appState.isRecording) {
+                recognition.stop();
+                return;
+            }
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(() => {
+                    recognition.start();
+                    micBtn.classList.add('recording');
+                    micBtn.classList.add('bg-red-600');
+                    micBtn.classList.remove('bg-green-600');
+                })
+                .catch(err => {
+                    alert(translations[appState.language].error_mic_permission);
+                });
+        });
+
+        recognition.onresult = (event) => {
+            const speechResult = event.results[0][0].transcript;
+            handleUserMessage(speechResult);
+        };
+        
+        recognition.onspeechend = () => {
+            recognition.stop();
+        };
+
+        recognition.onend = () => {
+             micBtn.classList.remove('recording');
+             micBtn.classList.remove('bg-red-600');
+             micBtn.classList.add('bg-green-600');
+             appState.isRecording = false;
+        };
+
+        recognition.onerror = (event) => {
+             addMessageToChat('bot', translations[appState.language].error_voice);
+        };
+    } else {
+        micBtn.style.display = 'none'; // Hide if not supported
+    }
+}
+
+function scrollToBottom() {
+    const chatWindow = document.getElementById('chat-window');
+    if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function addMessageToChat(sender, text) {
+    const chatWindow = document.getElementById('chat-window');
+    if (!chatWindow) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-bubble', sender);
+    messageDiv.textContent = text;
+    chatWindow.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function handleUserMessage(message) {
+    addMessageToChat('user', message);
+    appState.chatHistory.push({ sender: 'user', text: message });
+    getAIResponse(message);
+}
+
+async function getAIResponse(userMessage) {
+    const botTypingDiv = document.createElement('div');
+    botTypingDiv.classList.add('chat-bubble', 'bot');
+    botTypingDiv.innerHTML = `<div class="flex items-center">
+        <div class="animate-pulse h-2 w-2 bg-gray-400 rounded-full mr-1"></div>
+        <div class="animate-pulse h-2 w-2 bg-gray-400 rounded-full mr-1" style="animation-delay: 0.2s;"></div>
+        <div class="animate-pulse h-2 w-2 bg-gray-400 rounded-full" style="animation-delay: 0.4s;"></div>
+    </div>`;
+    document.getElementById('chat-window').appendChild(botTypingDiv);
+    scrollToBottom();
+
+    const apiKey = ""; 
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+    const systemPrompt = `You are AgroAI, a friendly and expert agricultural assistant for small farmers in India.
+    Your language for response should be ${appState.language === 'hi' ? 'Hindi' : (appState.language === 'pa' ? 'Punjabi' : 'English')}.
+    Keep your answers simple, clear, and actionable. 
+    Here is the user's profile:
+    - Location: ${appState.userProfile.location.district}, ${appState.userProfile.location.state}
+    - Primary Crops: ${appState.userProfile.crops.join(', ')}
+    Base your advice on this profile.`;
+
+    const payload = {
+        contents: [{ parts: [{ text: userMessage }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+    };
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        botTypingDiv.remove();
+        if (text) {
+            addMessageToChat('bot', text);
+            appState.chatHistory.push({ sender: 'bot', text: text });
+        } else {
+            throw new Error("No text in response");
+        }
+    } catch (error) {
+        console.error("AI Response Error:", error);
+        botTypingDiv.remove();
+        const errorText = translations[appState.language].error_api;
+        addMessageToChat('bot', errorText);
+        appState.chatHistory.push({ sender: 'bot', text: errorText });
+    }
+}
+
+
+// ======================= Diagnosis Logic =======================
+function initDiagnose() {
+    const uploadArea = document.getElementById('image-upload-area');
+    const imageInput = document.getElementById('crop-image-input');
+    const previewArea = document.getElementById('image-preview-area');
+    const previewImg = document.getElementById('image-preview');
+    const analyzeBtn = document.getElementById('analyze-btn');
+
+    uploadArea.addEventListener('click', () => imageInput.click());
+    
+    imageInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                uploadArea.classList.add('hidden');
+                previewArea.classList.remove('hidden');
+                document.getElementById('diagnosis-result-area').classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+        const base64Image = previewImg.src.split(',')[1];
+        if (!base64Image) return;
+
+        const resultArea = document.getElementById('diagnosis-result-area');
+        const loader = document.getElementById('diagnosis-loader');
+        
+        resultArea.innerHTML = '';
+        resultArea.classList.add('hidden');
+        loader.classList.remove('hidden');
+
+        const apiKey = ""; 
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        const prompt = `Analyze this image of a plant. Identify any potential diseases or pests. 
+        Provide a diagnosis with a confidence level (High, Medium, Low). 
+        Then, suggest simple, actionable treatment options (both organic and chemical). 
+        The farmer is located in ${appState.userProfile.location.district}, ${appState.userProfile.location.state}.
+        Respond in ${appState.language === 'hi' ? 'Hindi' : (appState.language === 'pa' ? 'Punjabi' : 'English')}. 
+        Format your response clearly with headings for Diagnosis, Confidence, and Recommendations.`;
+
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+                ]
+            }]
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) throw new Error('API Request Failed');
+            
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (text) {
+                // Simple markdown-to-html conversion
+                const formattedText = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-800">$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+                resultArea.innerHTML = `<div class="bg-gray-100 p-4 rounded-lg">${formattedText}</div>`;
+            } else {
+                throw new Error('No text in response');
+            }
+        } catch (error) {
+            console.error(error);
+            resultArea.innerHTML = `<p class="text-red-500">${translations[appState.language].error_api}</p>`;
+        } finally {
+            loader.classList.add('hidden');
+            resultArea.classList.remove('hidden');
+        }
+    });
+}
+
+
+// ======================= App Initialization =======================
+window.addEventListener('load', () => {
+    // Set initial language based on browser or default
+    const userLang = navigator.language.slice(0, 2);
+    const langSelect = document.getElementById('language-select');
+    if (['en', 'hi', 'pa'].includes(userLang)) {
+        langSelect.value = userLang;
+        appState.language = userLang;
+    }
+    translateUI(appState.language);
+    navigateTo('onboarding-page');
+});
+
+</script>
+</body>
+</html>
